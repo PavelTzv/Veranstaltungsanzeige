@@ -1,0 +1,19 @@
+{
+  "name": "veranstaltungsanzeige",
+  "version": "1.0.0",
+  "description": "Software zum automatischen und täglichen Anzeigen von Veranstaltungen.",
+  "license": "Apache-2.0",
+  "author": "Pavel Tzvetkov",
+  "type": "commonjs",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "electron": "^39.0.0"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  }
+}

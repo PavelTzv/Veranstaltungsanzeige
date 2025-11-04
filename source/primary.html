@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'"
+    />
+    <meta 
+      http-equiv="X-Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'"
+    />
+    <title>Kontrollfenster</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+
+    <header class="pheader">
+      <h1 class="pheader__title">Veranstaltungen</h1>
+      <img src="logo.png" alt="C-DAT Logo" class="pheader__logo" />
+    </header>
+  
+    <main class="main">
+
+      <!-- Quell­datei -->
+      <section class="card">
+        <h2 class="card__title">Quelldatei</h2>
+        <div class="card__content">
+          <label class="file-input">
+            <button type="button" class="file-input__btn" id="btn">Datei auswählen</button>
+            <input type="file" class="file-input__field" />
+          </label>
+          <span class="file-input__path" id="filePath">Bitte Quelldatei festlegen..</span>
+        </div>
+      </section>
+  
+      <!-- Bildschirm -->
+      <section class="card">
+        <h2 class="card__title">Bildschirm</h2>
+        <div class="card__content">
+          <select class="select" id="display-select"></select>
+        </div>
+      </section>
+  
+      <!-- Einstellungen -->
+      <section class="card">
+        <h2 class="card__title">Einstellungen</h2>
+        <div class="card__content card__content--grid">
+          <div class="field">
+            <label class="field__label">max. sichtbare Veranstaltungen (<span id="aktuelleRows"></span>)</label>
+            <input type="number" class="field__input" id="rows"/>
+          </div>
+          <div class="field">
+            <label class="field__label">Neustart bei Stunde (<span id="aktuelleRelHour"></span>)</label>
+            <input type="number" class="field__input" id="relHour"/>
+          </div>
+          <div class="field">
+            <label class="field__label">Neustart bei Minute (<span id="aktuelleRelMin"></span>)</label>
+            <input type="number" class="field__input" id="relMinute"/>
+          </div>
+        </div>
+      </section>
+  
+      <div class="actions">
+        <button type="button" class="btn" id="btn2">Neustart</button>
+      </div>
+    </main>
+  </body>
+  <script src="./renderer.js"></script>
+</html>

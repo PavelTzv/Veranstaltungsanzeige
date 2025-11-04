@@ -1,0 +1,288 @@
+/* styles.css */
+
+/* 1. Variablen */
+:root {
+    --font-family: system-ui, sans-serif;
+    --font-size-base: 16px;
+    --color-text: #111;
+    --color-muted: #555;
+    --color-bg: #f9f9f9;
+    --color-card-bg: #fff;
+    --color-primary: #0055ff;
+    --color-border: #e0e0e0;
+    --radius: 8px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    --gap: 1rem;
+  }
+  
+  /* 2. Global Reset */
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  body {
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    color: var(--color-text);
+    background: var(--color-bg);
+    line-height: 1.5;
+  }
+  
+  /* 3. Header */
+  .pheader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 3.5rem;
+    padding: var(--gap) 5rem;
+  }
+  .pheader__title {
+    font-size: 2rem;
+  }
+  .pheader__logo {
+    height: 48px;
+  }
+  
+  /* 4. Main-Container */
+  .main {
+    margin: 0 auto;
+    padding: var(--gap) 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--gap) * 1.5);
+  }
+  
+  /* 5. Karten-Layout */
+  .card {
+    background: var(--color-card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: var(--gap) 1.5rem;
+  }
+  .card__title {
+    font-size: 1.25rem;
+    margin-bottom: var(--gap);
+  }
+  .card__content {
+    display: flex;
+    align-items: center;
+    gap: var(--gap);
+  }
+  
+  /* Grid für Einstellungen */
+  .card__content--grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--gap);
+  }
+  
+  /* 6. Formularelemente */
+  .file-input {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .file-input__btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--color-border);
+    background: #fff;
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  .file-input__field {
+    display: none;
+  }
+  .file-input__path {
+    color: var(--color-muted);
+    font-size: 0.9rem;
+  }
+  
+  .select {
+    padding: 0.6rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: #fff;
+    cursor: pointer;
+  }
+  
+  .field {
+    display: flex;
+    flex-direction: column;
+  }
+  .field__label {
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+    color: var(--color-muted);
+  }
+  .field__input {
+    padding: 0.5rem;
+    font-size: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+  }
+  
+  /* 7. Actions */
+  
+  .btn {
+    padding: 0.6rem 1.2rem;
+    border: 1px solid var(--color-border);
+    background: #fff;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 1rem;
+  }
+
+  #btn2 {
+    background-color: #fff;
+    color: #000;
+    transition: background-color 0.2s ease;
+  }
+  
+  #btn2:hover {
+    background-color: #E59303;
+    color: #fff;
+  }
+  
+  /* 8. Responsive */
+  @media (max-width: 600px) {
+    .header, .main {
+      padding: var(--gap) 1rem;
+    }
+  }
+
+body {
+    font-family: Arial, sans-serif;
+    font-size: 27px;
+    background-color: #faf8f8;
+    margin: 0;
+    padding: 0;
+}
+
+.schedule-container {
+    margin: 0px 50px 0px 50px; /* Außen */
+    /* padding: 20px;  Innen */
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 40px 70px; /* Außen */
+}
+
+.box {
+    border: 1px solid #faf8f8;
+    padding: 12px;
+    margin: 0px 50px 0px 50px;
+    border-radius: 10;
+}
+
+.header .date {
+    font-size: 2.3rem;
+    color: #21518C;
+    margin: 0;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+}
+
+.header .zeit {
+    font-size: 3.5rem;
+    color: #E59303;
+    margin: 0;
+}
+
+.header .logo {
+    height: 125px;
+}
+
+.table-container {
+    width: 80%;
+    margin: auto;
+    border-collapse: collapse;
+    text-align: left;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+/* Fixiertes Layout für die Stundenplan-Tabelle, damit Prozentbreiten strikt greifen */
+.schedule-container table { table-layout: fixed; width: 100%; }
+/* Lange Inhalte in Thema (4) und Dozent:in (5) weich umbrechen */
+.schedule-container td:nth-child(4),
+.schedule-container td:nth-child(5) { overflow-wrap: anywhere; word-break: break-word; }
+
+th, td {
+    border: 1px solid #faf8f8;
+    padding: 12px;
+}
+th {
+    background-color: #195191;
+    text-align: left;
+    color: white
+}
+.date {
+    text-align: center;
+    font-size: 1.4em;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+tr:nth-child(even) {
+    background-color: #e2e2e2;
+}
+
+.schedule-container col:nth-child(1) { width: 9%; }   /* Zeit */
+.schedule-container col:nth-child(2) { width: 9%; }   /* Raum */
+.schedule-container col:nth-child(3) { width: 24%; }  /* Veranstaltung */
+.schedule-container col:nth-child(4) { width: 28%; }  /* Thema */
+.schedule-container col:nth-child(5) { width: 20%; }  /* Dozent:in (breit) */
+.schedule-container col:nth-child(6) { width: 10%; }  /* Gruppe */
+
+.schedule-container th:nth-child(2),  /* 2. Spalte (Raum) */
+.schedule-container th:nth-child(6),  /* 6. Spalte (Gruppe) */
+.schedule-container td:nth-child(2),  /* 2. Spalte (Raum) */
+.schedule-container td:nth-child(6) { /* 6. Spalte (Gruppe) */
+    text-align: center;
+}
+#dropzone {
+    background-color: #E59303;
+    border-radius: 10px; 
+    margin: 10px auto;
+    width: 70vw; 
+    height: 40vh;
+    border: 3px dotted _crimson;
+}
+
+#monitor-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 40px;
+  }
+  
+  .monitor-tile {
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 15px;
+    width: 300px;
+    background: #fff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  
+  .monitor-info {
+    font-size: 14px;
+  }
+  
+  .preview {
+    flex: 1;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }

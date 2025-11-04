@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'"
+    />
+    <meta 
+      http-equiv="X-Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'"
+    />
+    <title>Vernanstaltungen Heute</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="header">
+    <h1 id="Uhrzeit" class="zeit">Zeit</h1>
+    
+    <h1 id="datum" class="date">Heute</h1>  
+    <img src="logo.png" alt="C-DAT Logo" class="logo">
+  </div>
+  <div id="table-container"></div> <!-- Warum?? Ghost Laden -->
+</body>
+<script src="./renderer.js"></script>
+</html>
