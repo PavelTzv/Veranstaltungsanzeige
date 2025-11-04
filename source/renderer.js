@@ -9,35 +9,25 @@ window.windowDataAPI.onWindowData((data) => {
 });
 
 window.vorlesungenDataAPI.onVorlesungenData(async (data) => {
-  const MAX_VISIBLE_ROWS = await window.windowDataAPI.getMaxVisRows(); // Maximale sichtbare Zeilen
-
+  const MAX_VISIBLE_ROWS = await window.windowDataAPI.getMaxVisRows(); 
   const rowsPerPage = Number.isFinite(Number(MAX_VISIBLE_ROWS)) && Number(MAX_VISIBLE_ROWS) > 0
     ? Number(MAX_VISIBLE_ROWS)
-    : 10; // Fallback
-
+    : 10;
   const container = document.getElementById("table-container");
   if (!container) {
     console.warn('[renderer] #table-container nicht gefunden – Abbruch des Renderns');
     return;
   }
-
   const datumEl = document.getElementById('datum');
   if (datumEl) datumEl.innerText = `${data.wochentag}, ${data.datum}`;
-
   if (data.vorlesungen.length > 0) {
-    
-    // =========================
-    // Anzeige-Logik: Filter & Paging
-    // =========================
-    // Stellschrauben
-    const FILTER_GRACE_MIN = 5;          // Nachlaufzeit in Minuten nach "Bis"
-    const ROTATE_PAGES = true;           // true = Seiten rotieren, false = nur 1. Seite
-    const ROTATE_INTERVAL_MS = 13000;    // 15 Sekunden pro Seite
 
-    // Anzeigeformat: Excel-Zeit (Tagesbruchteil / Zahl / "HH:MM[:SS]") -> "HH.MM"
+    const FILTER_GRACE_MIN = 5;          
+    const ROTATE_PAGES = true;           
+    const ROTATE_INTERVAL_MS = 13000;    
+
     function excelTimeToHHMM(value) {
       if (value === null || value === undefined || value === "") return "";
-      // Strings wie "08:45:00" oder "08:45"
       if (typeof value === "string") {
         const s = value.trim();
         const m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
@@ -46,12 +36,11 @@ window.vorlesungenDataAPI.onVorlesungenData(async (data) => {
           const min = String(Number(m[2])).padStart(2, "0");
           return `${h}.${min}`;
         }
-        // Komma zu Punkt normalisieren und als Zahl versuchen
         const n = Number(s.replace(",", "."));
         if (!Number.isNaN(n)) value = n; else return String(value);
       }
       if (typeof value === "number" && Number.isFinite(value)) {
-        const frac = ((value % 1) + 1) % 1; // Uhrzeitanteil
+        const frac = ((value % 1) + 1) % 1; 
         const totalMinutes = Math.round(frac * 24 * 60);
         const hours = Math.floor(totalMinutes / 60);
         const minutes = totalMinutes % 60;
@@ -60,12 +49,8 @@ window.vorlesungenDataAPI.onVorlesungenData(async (data) => {
       }
       return String(value);
     }
-
-    // Parser: Excel-Zeit (Bruchteil/Serial/"HH:MM") -> Minuten seit Mitternacht
     function excelTimeToMinutes(value) {
       if (value === null || value === undefined || value === "") return null;
-
-      // Strings erlauben: "0,5", "0.5", "08:30"
       if (typeof value === "string") {
         const s = value.trim().replace(",", ".");
         const m = s.match(/^(\d{1,2}):(\d{2})/);
@@ -77,46 +62,32 @@ window.vorlesungenDataAPI.onVorlesungenData(async (data) => {
         const n = Number(s);
         if (!Number.isNaN(n)) value = n; else return null;
       }
-
-      // Zahlen (Excel-Serial oder Tagesbruchteil)
       if (typeof value === "number" && Number.isFinite(value)) {
-        // Nur Uhrzeit-Bruchteil extrahieren, Datum ignorieren
         const frac = ((value % 1) + 1) % 1;
         return Math.round(frac * 24 * 60);
       }
       return null;
     }
-
-    // Originaldaten puffern, damit Timer-Render konsistent ist
     const originalVorlesungen = [...data.vorlesungen];
-
     function getFilteredVorlesungen() {
       const now = new Date();
       const nowMin = now.getHours() * 60 + now.getMinutes();
       const cutoff = nowMin - FILTER_GRACE_MIN;
       return originalVorlesungen.filter(v => {
         const endMin = excelTimeToMinutes(v.end);
-        // Wenn Endzeit nicht parsebar ist, sicherheitshalber anzeigen (nicht wegfiltern)
         if (endMin === null) return true;
         return endMin >= cutoff;
       });
     }
-
-    // Paging-Status
     let pageIndex = 0;
-
     function pageSlice(list, page, pageSize) {
       const start = page * pageSize;
       return list.slice(start, start + pageSize);
     }
-
     function render() {
-      // Container komplett neu aufbauen (kein Full-Reload nötig)
       container.innerHTML = "";
-
       const containerDiv = document.createElement("div");
       containerDiv.className = "schedule-container";
-
       const table = document.createElement("table");
       table.innerHTML = `
         <colgroup>
@@ -140,19 +111,12 @@ window.vorlesungenDataAPI.onVorlesungenData(async (data) => {
         <tbody></tbody>
       `;
       const tbody = table.querySelector("tbody");
-
-      // Filtern nach Endzeit
       const filtered = getFilteredVorlesungen();
-
-      // Paging berechnen
       const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
       if (pageIndex >= totalPages) pageIndex = 0;
-
       const rowsToRender = ROTATE_PAGES
         ? pageSlice(filtered, pageIndex, rowsPerPage)
         : filtered.slice(0, rowsPerPage);
-
-      // Rows bauen
       rowsToRender.forEach(vorlesung => {
         const row = document.createElement("tr");
         row.innerHTML = `
@@ -165,11 +129,8 @@ window.vorlesungenDataAPI.onVorlesungenData(async (data) => {
         `;
         tbody.appendChild(row);
       });
-
       containerDiv.appendChild(table);
       container.appendChild(containerDiv);
-
-      // Hinweiszeile bei mehreren Seiten
       if (filtered.length > rowsPerPage) {
         const more = document.createElement("div");
         more.id = "more-entries";
@@ -180,39 +141,27 @@ window.vorlesungenDataAPI.onVorlesungenData(async (data) => {
         more.style.color = "grey";
         container.appendChild(more);
       }
-
-      // Aktuelle MAX_VISIBLE_ROWS anzeigen (falls Element vorhanden)
       const maxVisibleRowsDis = document.getElementById('aktuelleRows');
       if (maxVisibleRowsDis) {
         maxVisibleRowsDis.textContent = rowsPerPage;
       }
     }
-
-    // Initial rendern
     render();
-
-    // Vorherige Timer bereinigen, falls neue Daten mehrmals ankommen
     if (window.__rotationTimer) { clearInterval(window.__rotationTimer); window.__rotationTimer = null; }
     if (window.__refreshTimer) { clearInterval(window.__refreshTimer); window.__refreshTimer = null; }
-
-    // Seitenrotation (falls aktiviert)
     if (ROTATE_PAGES) {
       window.__rotationTimer = setInterval(() => {
         pageIndex += 1;
         render();
       }, ROTATE_INTERVAL_MS);
     }
-
-    // Periodisch neu filtern/anzeigen, damit abgelaufene Vorlesungen automatisch verschwinden
     window.__refreshTimer = setInterval(() => {
       render();
-    }, 60000); // jede Minute neu rendern
-
+    }, 60000); 
   }
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Uhrzeit oben rechts laufend aktualisieren
   function updateClock() {
     const now = new Date();
     const hh = String(now.getHours()).padStart(2, '0');
@@ -222,13 +171,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     requestAnimationFrame(updateClock);
   }
   updateClock();
-
-  // Controls/Dropdowns
   const displaySelect = document.getElementById('display-select');
   const maxVisibleRowsInput = document.getElementById('rows');
   const relounchHour = document.getElementById('relHour');
   const relounchMinute = document.getElementById('relMinute');
-
   async function loadDisplays() {
     try {
       if (!window.electronAPI?.getDisplays || !displaySelect) return;
@@ -246,7 +192,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.warn('loadDisplays fehlgeschlagen:', e);
     }
   }
-
   const btn2 = document.getElementById('btn2');
   if (btn2) {
     btn2.addEventListener('click', async () => {
@@ -270,10 +215,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
   }
-
   await loadDisplays();
-
-  // Config-Pfad anzeigen
   try {
     const configPath = await window.windowDataAPI?.getPath?.();
     const filePathElement = document.getElementById('filePath');
@@ -281,30 +223,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (e) {
     console.warn('Config-Pfad konnte nicht geladen werden:', e);
   }
-
-  // Aktuelle Einstellungen anzeigen (mit Fallback auf beide Bridges)
   const aktuelleRows = document.getElementById('aktuelleRows');
   const aktuelleRelHour = document.getElementById('aktuelleRelHour');
   const aktuelleRelMin = document.getElementById('aktuelleRelMin');
-
   try {
     let rows = null;
     if (window.electronAPI?.getMaxVisibleRows) rows = await window.electronAPI.getMaxVisibleRows();
     else if (window.windowDataAPI?.getMaxVisRows) rows = await window.windowDataAPI.getMaxVisRows();
     if (aktuelleRows && rows != null) aktuelleRows.textContent = rows;
   } catch (e) { console.warn('aktuelleRows holen fehlgeschlagen:', e); }
-
   try {
     const h = await window.electronAPI?.getRelounchHour?.();
     if (aktuelleRelHour && h != null) aktuelleRelHour.textContent = h;
   } catch (e) { console.warn('aktuelleRelHour holen fehlgeschlagen:', e); }
-
   try {
     const m = await window.electronAPI?.getRelounchMinute?.();
     if (aktuelleRelMin && m != null) aktuelleRelMin.textContent = m;
   } catch (e) { console.warn('aktuelleRelMin holen fehlgeschlagen:', e); }
-
-  // Datei wählen Button
   const btn = document.getElementById('btn');
   const filePathElement2 = document.getElementById('filePath');
   if (btn && window.electronAPI?.openFile) {
