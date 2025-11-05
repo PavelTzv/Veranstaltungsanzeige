@@ -1,6 +1,6 @@
 {
   "name": "veranstaltungsanzeige",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Software zum automatischen und täglichen Anzeigen von Veranstaltungen.",
   "license": "Apache-2.0",
   "author": "Pavel Tzvetkov",
@@ -21,9 +21,13 @@
   "build": {
     "appId": "com.paveltzvetkov.veranstaltungsanzeige",
     "productName": "Veranstaltungsanzeige",
-    "directories": { "output": "dist" },
+    "directories": {
+      "output": "dist"
+    },
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "source/build-icon.ico",
       "artifactName": "${productName}-Setup-${version}.${ext}"
     },
@@ -33,6 +37,10 @@
       "allowToChangeInstallationDirectory": false,
       "deleteAppDataOnUninstall": true
     },
-    "publish": [{ "provider": "github" }]
+    "publish": [
+      {
+        "provider": "github"
+      }
+    ]
   }
 }
