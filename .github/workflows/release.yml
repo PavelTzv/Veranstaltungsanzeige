@@ -1,0 +1,19 @@
+name: Build & Release Windows EXE
+on:
+  push:
+    tags:
+      - 'v*'            # baut automatisch, wenn du einen Tag wie v1.0.0 pushst
+  workflow_dispatch:     # optional: manueller Start
+
+jobs:
+  build-win:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run dist:win
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}   # wird in Schritt 2 angelegt
