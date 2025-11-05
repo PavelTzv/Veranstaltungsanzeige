@@ -21,9 +21,7 @@
   "build": {
     "appId": "com.paveltzvetkov.veranstaltungsanzeige",
     "productName": "Veranstaltungsanzeige",
-    "directories": {
-      "output": "dist"
-    },
+    "directories": { "output": "dist" },
     "win": {
       "target": ["nsis"],
       "icon": "source/build-icon.ico",
@@ -33,9 +31,8 @@
       "oneClick": true,
       "perMachine": false,
       "allowToChangeInstallationDirectory": false,
-      "deleteAppDataOnUninstall": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
-    }
+      "deleteAppDataOnUninstall": true
+    },
+    "publish": [{ "provider": "github" }]
   }
 }
