@@ -20,6 +20,37 @@ window.vorlesungenDataAPI.onVorlesungenData(async (data) => {
   }
   const datumEl = document.getElementById('datum');
   if (datumEl) datumEl.innerText = `${data.wochentag}, ${data.datum}`;
+
+  // ===== UI: No-Events (OHNE großes Logo) =====
+  const header = document.querySelector('.header');
+
+  const removeCenterLogo = () => {
+    const wrap = document.querySelector('.center-logo');
+    if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
+  };
+
+  const stopTableTimers = () => {
+    if (window.__rotationTimer) { clearInterval(window.__rotationTimer); window.__rotationTimer = null; }
+    if (window.__refreshTimer) { clearInterval(window.__refreshTimer); window.__refreshTimer = null; }
+  };
+
+  const setNoEventsMode = (on) => {
+    // Kein No-Events-Special-UI mehr: nur ggf. Timer stoppen und ggf. vorhandenes Logo entfernen
+    document.body.classList.remove('no-events');
+    removeCenterLogo();
+    if (on) stopTableTimers();
+  };
+
+  // Wenn die Quelldaten schon leer sind: sofort No-Events anzeigen
+  if (!Array.isArray(data.vorlesungen) || data.vorlesungen.length === 0) {
+    container.innerHTML = '';
+    setNoEventsMode(true);
+    return;
+  }
+
+  // Standardmäßig: normaler Modus (falls vorher no-events aktiv war)
+  setNoEventsMode(false);
+
   if (data.vorlesungen.length > 0) {
 
     const FILTER_GRACE_MIN = 5;          
@@ -112,6 +143,17 @@ window.vorlesungenDataAPI.onVorlesungenData(async (data) => {
       `;
       const tbody = table.querySelector("tbody");
       const filtered = getFilteredVorlesungen();
+
+      // Wenn nach Zeitfilterung keine Veranstaltungen mehr übrig sind: Umschalten
+      if (!filtered || filtered.length === 0) {
+        container.innerHTML = '';
+        setNoEventsMode(true);
+        return;
+      }
+
+      // Es gibt (noch) Veranstaltungen: sicherstellen, dass No-Events aus ist
+      setNoEventsMode(false);
+
       const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
       if (pageIndex >= totalPages) pageIndex = 0;
       const rowsToRender = ROTATE_PAGES

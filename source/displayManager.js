@@ -33,6 +33,7 @@ function createPrimaryWindow(pirmaryDisplay) {
     })
   })
   win.once('ready-to-show', () => {
+    win.showInactive();
     win.minimize();
   });
 }

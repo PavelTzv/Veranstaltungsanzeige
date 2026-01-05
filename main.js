@@ -125,6 +125,7 @@ async function handleFileOpen() {
 const createWindows = () => {
   const displays = screen.getAllDisplays();
   const primaryDisplay = screen.getPrimaryDisplay();
+  const nonPrimaryDisplays = displays.filter(d => d.id !== primaryDisplay.id);
   let config = readConfig();
   let selectedDisplays = displays.filter(display => display.id === Number(config.selectedDisplay));
   let savedFilePath = config.selectedFilePath || null;
@@ -132,7 +133,7 @@ const createWindows = () => {
   if (selectedDisplays.length > 0) {
     anzeigeVeranstaltungenWindow(selectedDisplays, savedFilePath);
   } else {
-    anzeigeVeranstaltungenWindow(displays, savedFilePath);
+    anzeigeVeranstaltungenWindow(nonPrimaryDisplays, savedFilePath);
   }
 };
 
