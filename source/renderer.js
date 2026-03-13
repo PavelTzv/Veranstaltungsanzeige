@@ -10,7 +10,7 @@ window.windowDataAPI.onWindowData((data) => {
 
 window.vorlesungenDataAPI.onVorlesungenData(async (data) => {
   const MAX_VISIBLE_ROWS = await window.windowDataAPI.getMaxVisRows(); 
-  const rowsPerPage = Number.isFinite(Number(MAX_VISIBLE_ROWS)) && Number(MAX_VISIBLE_ROWS) > 0
+  const configuredRowsPerPage = Number.isFinite(Number(MAX_VISIBLE_ROWS)) && Number(MAX_VISIBLE_ROWS) > 0
     ? Number(MAX_VISIBLE_ROWS)
     : 10;
   const container = document.getElementById("table-container");
@@ -22,7 +22,8 @@ window.vorlesungenDataAPI.onVorlesungenData(async (data) => {
   const datumEl = document.getElementById('datum');
   let currentData = data;
   let originalVorlesungen = Array.isArray(data.vorlesungen) ? [...data.vorlesungen] : [];
-  let pageIndex = 0;
+  let currentPageIndex = 0;
+  let lastTotalPages = 1;
   if (datumEl) datumEl.innerText = `${currentData.wochentag}, ${currentData.datum}`;
 
   const stopRotationTimer = () => {
@@ -110,6 +111,11 @@ window.vorlesungenDataAPI.onVorlesungenData(async (data) => {
     return `bis ${end} Uhr`;
   }
 
+  function formatCellContent(value) {
+    if (value === null || value === undefined || value === "") return "";
+    return String(value);
+  }
+
   function getFilteredVorlesungen() {
     const now = new Date();
     const nowMin = now.getHours() * 60 + now.getMinutes();
@@ -121,13 +127,16 @@ window.vorlesungenDataAPI.onVorlesungenData(async (data) => {
     });
   }
 
-  function pageSlice(list, page, pageSize) {
-    const start = page * pageSize;
-    return list.slice(start, start + pageSize);
+  function getViewportBottomPadding() {
+    return 24;
   }
 
-  function render() {
-    container.innerHTML = "";
+  function fitsOnScreen(containerDiv) {
+    const rect = containerDiv.getBoundingClientRect();
+    return rect.bottom <= window.innerHeight - getViewportBottomPadding();
+  }
+
+  function buildTableShell() {
     const containerDiv = document.createElement("div");
     containerDiv.className = "schedule-container";
     const table = document.createElement("table");
@@ -153,6 +162,59 @@ window.vorlesungenDataAPI.onVorlesungenData(async (data) => {
       <tbody></tbody>
     `;
     const tbody = table.querySelector("tbody");
+    containerDiv.appendChild(table);
+    return { containerDiv, tbody };
+  }
+
+  function appendRow(tbody, vorlesung) {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td><span class="cell-text">${formatCellContent(formatDisplayedTime(vorlesung.start, vorlesung.end))}</span></td>
+      <td><span class="cell-text">${formatCellContent(vorlesung.room)}</span></td>
+      <td><span class="cell-text">${formatCellContent(vorlesung.event)}</span></td>
+      <td><span class="cell-text">${formatCellContent(vorlesung.topic)}</span></td>
+      <td><span class="cell-text">${formatCellContent(vorlesung.lecturer)}</span></td>
+      <td><span class="cell-text">${formatCellContent(vorlesung.group)}</span></td>
+    `;
+    tbody.appendChild(row);
+  }
+
+  function getFittingRowsCount(list, startIndex) {
+    const maxCandidateRows = Math.max(configuredRowsPerPage, list.length - startIndex);
+    const { containerDiv, tbody } = buildTableShell();
+    container.appendChild(containerDiv);
+
+    let rowsThatFit = 0;
+    for (let offset = 0; offset < maxCandidateRows; offset += 1) {
+      const vorlesung = list[startIndex + offset];
+      if (!vorlesung) break;
+      appendRow(tbody, vorlesung);
+      if (!fitsOnScreen(containerDiv)) {
+        tbody.removeChild(tbody.lastElementChild);
+        break;
+      }
+      rowsThatFit += 1;
+    }
+
+    container.removeChild(containerDiv);
+    return Math.max(1, rowsThatFit);
+  }
+
+  function buildPageLayout(list) {
+    const pages = [];
+    let startIndex = 0;
+
+    while (startIndex < list.length) {
+      const rowsShown = getFittingRowsCount(list, startIndex);
+      pages.push({ startIndex, rowsShown });
+      startIndex += rowsShown;
+    }
+
+    return pages;
+  }
+
+  function render() {
+    container.innerHTML = "";
     const filtered = getFilteredVorlesungen();
 
     if (!filtered || filtered.length === 0) {
@@ -163,29 +225,18 @@ window.vorlesungenDataAPI.onVorlesungenData(async (data) => {
 
     setNoEventsMode(false);
 
-    const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
-    if (pageIndex >= totalPages) pageIndex = 0;
-    const rowsToRender = ROTATE_PAGES
-      ? pageSlice(filtered, pageIndex, rowsPerPage)
-      : filtered.slice(0, rowsPerPage);
-    rowsToRender.forEach(vorlesung => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${formatDisplayedTime(vorlesung.start, vorlesung.end)}</td>
-        <td>${vorlesung.room}</td>
-        <td>${vorlesung.event}</td>
-        <td>${vorlesung.topic}</td>
-        <td>${vorlesung.lecturer}</td>
-        <td>${vorlesung.group}</td>
-      `;
-      tbody.appendChild(row);
-    });
-    containerDiv.appendChild(table);
+    const pages = buildPageLayout(filtered);
+    if (currentPageIndex >= pages.length) currentPageIndex = 0;
+
+    const currentPage = pages[currentPageIndex];
+    const rowsToRender = filtered.slice(currentPage.startIndex, currentPage.startIndex + currentPage.rowsShown);
+    const { containerDiv, tbody } = buildTableShell();
+    rowsToRender.forEach(vorlesung => appendRow(tbody, vorlesung));
     container.appendChild(containerDiv);
-    if (filtered.length > rowsPerPage) {
+    if (pages.length > 1) {
       const more = document.createElement("div");
       more.id = "more-entries";
-      more.innerText = `Es finden heute ${filtered.length} Veranstaltungen statt. (Seite ${pageIndex + 1} / ${totalPages})`;
+      more.innerText = `Es finden heute ${filtered.length} Veranstaltungen statt. (${currentPageIndex + 1}/${pages.length})`;
       more.style.fontStyle = "italic";
       more.style.textAlign = "center";
       more.style.marginTop = "15px";
@@ -194,16 +245,18 @@ window.vorlesungenDataAPI.onVorlesungenData(async (data) => {
     }
     const maxVisibleRowsDis = document.getElementById('aktuelleRows');
     if (maxVisibleRowsDis) {
-      maxVisibleRowsDis.textContent = rowsPerPage;
+      maxVisibleRowsDis.textContent = currentPage.rowsShown;
     }
-    return true;
+    lastTotalPages = pages.length;
+    return { hasVisibleEntries: true, totalPages: pages.length };
   }
 
   function restartRotationTimer() {
     stopRotationTimer();
     if (!ROTATE_PAGES) return;
     window.__rotationTimer = setInterval(() => {
-      pageIndex += 1;
+      currentPageIndex += 1;
+      if (currentPageIndex >= lastTotalPages) currentPageIndex = 0;
       render();
     }, ROTATE_INTERVAL_MS);
   }
@@ -214,21 +267,22 @@ window.vorlesungenDataAPI.onVorlesungenData(async (data) => {
       const freshData = await window.electronAPI.loadVorlesungen();
       currentData = freshData || {};
       originalVorlesungen = Array.isArray(currentData.vorlesungen) ? [...currentData.vorlesungen] : [];
-      pageIndex = 0;
+      currentPageIndex = 0;
+      lastTotalPages = 1;
       updateHeader(currentData);
-      const hasVisibleEntries = render();
-      if (hasVisibleEntries) restartRotationTimer();
+      const result = render();
+      if (result?.hasVisibleEntries) restartRotationTimer();
     } catch (error) {
       console.warn('Aktualisierung der Veranstaltungen fehlgeschlagen:', error);
     }
   }
 
   updateHeader(currentData);
-  const hasVisibleEntries = render();
+  const initialRender = render();
 
   stopRotationTimer();
   stopRefreshTimer();
-  if (hasVisibleEntries) restartRotationTimer();
+  if (initialRender?.hasVisibleEntries) restartRotationTimer();
   window.__refreshTimer = setInterval(() => {
     refreshVorlesungen();
   }, 60000);

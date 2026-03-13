@@ -216,9 +216,22 @@ table {
 }
 /* Fixiertes Layout für die Stundenplan-Tabelle, damit Prozentbreiten strikt greifen */
 .schedule-container table { table-layout: fixed; width: 100%; }
-/* Lange Inhalte in Thema (4) und Dozent:in (5) weich umbrechen */
-.schedule-container td:nth-child(4),
-.schedule-container td:nth-child(5) { overflow-wrap: anywhere; word-break: break-word; }
+
+.schedule-container td {
+    vertical-align: top;
+}
+
+.schedule-container .cell-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    line-clamp: 5;
+    -webkit-line-clamp: 5;
+    overflow: hidden;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    hyphens: auto;
+}
 
 th, td {
     border: 1px solid #faf8f8;
