@@ -14,193 +14,224 @@ window.vorlesungenDataAPI.onVorlesungenData(async (data) => {
     ? Number(MAX_VISIBLE_ROWS)
     : 10;
   const container = document.getElementById("table-container");
+  const noEventsMessageEl = document.getElementById('no-events-message');
   if (!container) {
     console.warn('[renderer] #table-container nicht gefunden – Abbruch des Renderns');
     return;
   }
   const datumEl = document.getElementById('datum');
-  if (datumEl) datumEl.innerText = `${data.wochentag}, ${data.datum}`;
+  let currentData = data;
+  let originalVorlesungen = Array.isArray(data.vorlesungen) ? [...data.vorlesungen] : [];
+  let pageIndex = 0;
+  if (datumEl) datumEl.innerText = `${currentData.wochentag}, ${currentData.datum}`;
 
-  // ===== UI: No-Events (OHNE großes Logo) =====
-  const header = document.querySelector('.header');
-
-  const removeCenterLogo = () => {
-    const wrap = document.querySelector('.center-logo');
-    if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
+  const stopRotationTimer = () => {
+    if (window.__rotationTimer) { clearInterval(window.__rotationTimer); window.__rotationTimer = null; }
   };
 
-  const stopTableTimers = () => {
-    if (window.__rotationTimer) { clearInterval(window.__rotationTimer); window.__rotationTimer = null; }
+  const stopRefreshTimer = () => {
     if (window.__refreshTimer) { clearInterval(window.__refreshTimer); window.__refreshTimer = null; }
   };
 
   const setNoEventsMode = (on) => {
-    // Kein No-Events-Special-UI mehr: nur ggf. Timer stoppen und ggf. vorhandenes Logo entfernen
-    document.body.classList.remove('no-events');
-    removeCenterLogo();
-    if (on) stopTableTimers();
+    document.body.classList.toggle('no-events', on);
+    if (!on) return;
+
+    if (noEventsMessageEl) {
+      noEventsMessageEl.innerText = 'Aktuell keine Lehrveranstaltungen';
+    }
+    stopRotationTimer();
   };
 
-  // Wenn die Quelldaten schon leer sind: sofort No-Events anzeigen
-  if (!Array.isArray(data.vorlesungen) || data.vorlesungen.length === 0) {
-    container.innerHTML = '';
-    setNoEventsMode(true);
-    return;
+  const FILTER_GRACE_MIN = 5;
+  const ROTATE_PAGES = true;
+  const ROTATE_INTERVAL_MS = 13000;
+
+  function updateHeader(nextData) {
+    if (!datumEl) return;
+    if (!nextData?.wochentag || !nextData?.datum) {
+      datumEl.innerText = '';
+      return;
+    }
+    datumEl.innerText = `${nextData.wochentag}, ${nextData.datum}`;
   }
 
-  // Standardmäßig: normaler Modus (falls vorher no-events aktiv war)
-  setNoEventsMode(false);
+  function excelTimeToHHMM(value) {
+    if (value === null || value === undefined || value === "") return "";
+    if (typeof value === "string") {
+      const s = value.trim();
+      const m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+      if (m) {
+        const h = String(Number(m[1])).padStart(2, "0");
+        const min = String(Number(m[2])).padStart(2, "0");
+        return `${h}.${min}`;
+      }
+      const n = Number(s.replace(",", "."));
+      if (!Number.isNaN(n)) value = n; else return String(value);
+    }
+    if (typeof value === "number" && Number.isFinite(value)) {
+      const frac = ((value % 1) + 1) % 1;
+      const totalMinutes = Math.round(frac * 24 * 60);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${pad(hours)}.${pad(minutes)}`;
+    }
+    return String(value);
+  }
 
-  if (data.vorlesungen.length > 0) {
+  function excelTimeToMinutes(value) {
+    if (value === null || value === undefined || value === "") return null;
+    if (typeof value === "string") {
+      const s = value.trim().replace(",", ".");
+      const m = s.match(/^(\d{1,2}):(\d{2})/);
+      if (m) {
+        const h = Number(m[1]);
+        const min = Number(m[2]);
+        if (Number.isFinite(h) && Number.isFinite(min)) return h * 60 + min;
+      }
+      const n = Number(s);
+      if (!Number.isNaN(n)) value = n; else return null;
+    }
+    if (typeof value === "number" && Number.isFinite(value)) {
+      const frac = ((value % 1) + 1) % 1;
+      return Math.round(frac * 24 * 60);
+    }
+    return null;
+  }
 
-    const FILTER_GRACE_MIN = 5;          
-    const ROTATE_PAGES = true;           
-    const ROTATE_INTERVAL_MS = 13000;    
+  function formatDisplayedTime(startValue, endValue) {
+    const start = excelTimeToHHMM(startValue);
+    const end = excelTimeToHHMM(endValue);
 
-    function excelTimeToHHMM(value) {
-      if (value === null || value === undefined || value === "") return "";
-      if (typeof value === "string") {
-        const s = value.trim();
-        const m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
-        if (m) {
-          const h = String(Number(m[1])).padStart(2, "0");
-          const min = String(Number(m[2])).padStart(2, "0");
-          return `${h}.${min}`;
-        }
-        const n = Number(s.replace(",", "."));
-        if (!Number.isNaN(n)) value = n; else return String(value);
-      }
-      if (typeof value === "number" && Number.isFinite(value)) {
-        const frac = ((value % 1) + 1) % 1; 
-        const totalMinutes = Math.round(frac * 24 * 60);
-        const hours = Math.floor(totalMinutes / 60);
-        const minutes = totalMinutes % 60;
-        const pad = (n) => String(n).padStart(2, "0");
-        return `${pad(hours)}.${pad(minutes)}`;
-      }
-      return String(value);
+    if (!start && !end) return "";
+    if (start && end) return `${start} - ${end} Uhr`;
+    if (start) return `ab ${start} Uhr`;
+    return `bis ${end} Uhr`;
+  }
+
+  function getFilteredVorlesungen() {
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    const cutoff = nowMin - FILTER_GRACE_MIN;
+    return originalVorlesungen.filter(v => {
+      const endMin = excelTimeToMinutes(v.end);
+      if (endMin === null) return true;
+      return endMin >= cutoff;
+    });
+  }
+
+  function pageSlice(list, page, pageSize) {
+    const start = page * pageSize;
+    return list.slice(start, start + pageSize);
+  }
+
+  function render() {
+    container.innerHTML = "";
+    const containerDiv = document.createElement("div");
+    containerDiv.className = "schedule-container";
+    const table = document.createElement("table");
+    table.innerHTML = `
+      <colgroup>
+        <col>
+        <col>
+        <col>
+        <col>
+        <col>
+        <col>
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Zeit</th>
+          <th>Raum</th>
+          <th>Veranstaltung/Studiengang</th>
+          <th>Thema</th>
+          <th>Dozent:in</th>
+          <th>Gruppe</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+    const tbody = table.querySelector("tbody");
+    const filtered = getFilteredVorlesungen();
+
+    if (!filtered || filtered.length === 0) {
+      container.innerHTML = '';
+      setNoEventsMode(true);
+      return false;
     }
-    function excelTimeToMinutes(value) {
-      if (value === null || value === undefined || value === "") return null;
-      if (typeof value === "string") {
-        const s = value.trim().replace(",", ".");
-        const m = s.match(/^(\d{1,2}):(\d{2})/);
-        if (m) {
-          const h = Number(m[1]);
-          const min = Number(m[2]);
-          if (Number.isFinite(h) && Number.isFinite(min)) return h * 60 + min;
-        }
-        const n = Number(s);
-        if (!Number.isNaN(n)) value = n; else return null;
-      }
-      if (typeof value === "number" && Number.isFinite(value)) {
-        const frac = ((value % 1) + 1) % 1;
-        return Math.round(frac * 24 * 60);
-      }
-      return null;
-    }
-    const originalVorlesungen = [...data.vorlesungen];
-    function getFilteredVorlesungen() {
-      const now = new Date();
-      const nowMin = now.getHours() * 60 + now.getMinutes();
-      const cutoff = nowMin - FILTER_GRACE_MIN;
-      return originalVorlesungen.filter(v => {
-        const endMin = excelTimeToMinutes(v.end);
-        if (endMin === null) return true;
-        return endMin >= cutoff;
-      });
-    }
-    let pageIndex = 0;
-    function pageSlice(list, page, pageSize) {
-      const start = page * pageSize;
-      return list.slice(start, start + pageSize);
-    }
-    function render() {
-      container.innerHTML = "";
-      const containerDiv = document.createElement("div");
-      containerDiv.className = "schedule-container";
-      const table = document.createElement("table");
-      table.innerHTML = `
-        <colgroup>
-          <col>
-          <col>
-          <col>
-          <col>
-          <col>
-          <col>
-        </colgroup>
-        <thead>
-          <tr>
-            <th>Zeit</th>
-            <th>Raum</th>
-            <th>Veranstaltung/Studiengang</th>
-            <th>Thema</th>
-            <th>Dozent:in</th>
-            <th>Gruppe</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
+
+    setNoEventsMode(false);
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
+    if (pageIndex >= totalPages) pageIndex = 0;
+    const rowsToRender = ROTATE_PAGES
+      ? pageSlice(filtered, pageIndex, rowsPerPage)
+      : filtered.slice(0, rowsPerPage);
+    rowsToRender.forEach(vorlesung => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${formatDisplayedTime(vorlesung.start, vorlesung.end)}</td>
+        <td>${vorlesung.room}</td>
+        <td>${vorlesung.event}</td>
+        <td>${vorlesung.topic}</td>
+        <td>${vorlesung.lecturer}</td>
+        <td>${vorlesung.group}</td>
       `;
-      const tbody = table.querySelector("tbody");
-      const filtered = getFilteredVorlesungen();
-
-      // Wenn nach Zeitfilterung keine Veranstaltungen mehr übrig sind: Umschalten
-      if (!filtered || filtered.length === 0) {
-        container.innerHTML = '';
-        setNoEventsMode(true);
-        return;
-      }
-
-      // Es gibt (noch) Veranstaltungen: sicherstellen, dass No-Events aus ist
-      setNoEventsMode(false);
-
-      const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
-      if (pageIndex >= totalPages) pageIndex = 0;
-      const rowsToRender = ROTATE_PAGES
-        ? pageSlice(filtered, pageIndex, rowsPerPage)
-        : filtered.slice(0, rowsPerPage);
-      rowsToRender.forEach(vorlesung => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${excelTimeToHHMM(vorlesung.start)} - ${excelTimeToHHMM(vorlesung.end)} Uhr</td>
-          <td>${vorlesung.room}</td>
-          <td>${vorlesung.event}</td>
-          <td>${vorlesung.topic}</td>
-          <td>${vorlesung.lecturer}</td>
-          <td>${vorlesung.group}</td>
-        `;
-        tbody.appendChild(row);
-      });
-      containerDiv.appendChild(table);
-      container.appendChild(containerDiv);
-      if (filtered.length > rowsPerPage) {
-        const more = document.createElement("div");
-        more.id = "more-entries";
-        more.innerText = `Es finden heute ${filtered.length} Veranstaltungen statt. (Seite ${pageIndex + 1} / ${totalPages})`;
-        more.style.fontStyle = "italic";
-        more.style.textAlign = "center";
-        more.style.marginTop = "15px";
-        more.style.color = "grey";
-        container.appendChild(more);
-      }
-      const maxVisibleRowsDis = document.getElementById('aktuelleRows');
-      if (maxVisibleRowsDis) {
-        maxVisibleRowsDis.textContent = rowsPerPage;
-      }
+      tbody.appendChild(row);
+    });
+    containerDiv.appendChild(table);
+    container.appendChild(containerDiv);
+    if (filtered.length > rowsPerPage) {
+      const more = document.createElement("div");
+      more.id = "more-entries";
+      more.innerText = `Es finden heute ${filtered.length} Veranstaltungen statt. (Seite ${pageIndex + 1} / ${totalPages})`;
+      more.style.fontStyle = "italic";
+      more.style.textAlign = "center";
+      more.style.marginTop = "15px";
+      more.style.color = "grey";
+      container.appendChild(more);
     }
-    render();
-    if (window.__rotationTimer) { clearInterval(window.__rotationTimer); window.__rotationTimer = null; }
-    if (window.__refreshTimer) { clearInterval(window.__refreshTimer); window.__refreshTimer = null; }
-    if (ROTATE_PAGES) {
-      window.__rotationTimer = setInterval(() => {
-        pageIndex += 1;
-        render();
-      }, ROTATE_INTERVAL_MS);
+    const maxVisibleRowsDis = document.getElementById('aktuelleRows');
+    if (maxVisibleRowsDis) {
+      maxVisibleRowsDis.textContent = rowsPerPage;
     }
-    window.__refreshTimer = setInterval(() => {
-      render();
-    }, 60000); 
+    return true;
   }
+
+  function restartRotationTimer() {
+    stopRotationTimer();
+    if (!ROTATE_PAGES) return;
+    window.__rotationTimer = setInterval(() => {
+      pageIndex += 1;
+      render();
+    }, ROTATE_INTERVAL_MS);
+  }
+
+  async function refreshVorlesungen() {
+    if (!window.electronAPI?.loadVorlesungen) return;
+    try {
+      const freshData = await window.electronAPI.loadVorlesungen();
+      currentData = freshData || {};
+      originalVorlesungen = Array.isArray(currentData.vorlesungen) ? [...currentData.vorlesungen] : [];
+      pageIndex = 0;
+      updateHeader(currentData);
+      const hasVisibleEntries = render();
+      if (hasVisibleEntries) restartRotationTimer();
+    } catch (error) {
+      console.warn('Aktualisierung der Veranstaltungen fehlgeschlagen:', error);
+    }
+  }
+
+  updateHeader(currentData);
+  const hasVisibleEntries = render();
+
+  stopRotationTimer();
+  stopRefreshTimer();
+  if (hasVisibleEntries) restartRotationTimer();
+  window.__refreshTimer = setInterval(() => {
+    refreshVorlesungen();
+  }, 60000);
 });
 
 document.addEventListener('DOMContentLoaded', async () => {

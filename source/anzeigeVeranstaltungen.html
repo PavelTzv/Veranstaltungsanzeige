@@ -20,7 +20,13 @@
     <h1 id="datum" class="date">Heute</h1>  
     <img src="logo.png" alt="C-DAT Logo" class="logo">
   </div>
-  <div id="table-container"></div> <!-- Warum?? Ghost Laden -->
+  <main class="display-content">
+    <div id="table-container"></div>
+    <section id="no-events-view" class="no-events-view" aria-live="polite">
+      <img src="icon.png" alt="C-DAT Icon" class="no-events-view__icon">
+      <p id="no-events-message" class="no-events-view__message">Heute finden keine Veranstaltungen statt.</p>
+    </section>
+  </main>
 </body>
 <script src="./renderer.js"></script>
 </html>

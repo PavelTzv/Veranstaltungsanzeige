@@ -104,6 +104,21 @@ ipcMain.handle('get-path', () => {
   return config.selectedFilePath || " ";
 });
 
+ipcMain.handle('load-vorlesungen', () => {
+  const config = readConfig();
+  const { getVorlesungen } = require('./source/sourceManager');
+  const now = new Date();
+  const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+  const diffInMs = now.getTime() - excelEpoch.getTime();
+  const excelDate = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+  return {
+    wochentag: now.toLocaleString('de-DE', { weekday: 'long' }),
+    datum: now.toLocaleDateString('de-DE'),
+    vorlesungen: getVorlesungen(excelDate, config.selectedFilePath || null),
+  };
+});
+
 ipcMain.handle('reload-window', () => {
   app.relaunch();
   app.exit();
