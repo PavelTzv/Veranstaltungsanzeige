@@ -2,8 +2,6 @@
 
 A Windows desktop app (Electron) that shows the current day's lectures and meetings full-screen on a display, for example in an institute's entrance hall. I built it as a student assistant at University Medicine Greifswald, as the sole developer from requirements to rollout. It is in daily use there.
 
-*Eine Desktop-App, die die Veranstaltungen des Tages automatisch auf einem Bildschirm anzeigt.*
-
 ## What it does
 
 - Reads the schedule from an Excel file (`.xlsx`) and shows only today's entries: time, room, event, topic and lecturer.
